@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Linux Server Hardening & Security Deployment Tool
+# Author: Abdul Rehman Rashid
+# Target OS: Ubuntu / Debian
+
+# Ensure the script is running as root
+if [ "$EUID" -ne 0 ]; then
+  echo "❌ Error: Please run this script as root (sudo)."
+  exit 1
+fi
+
+echo "======================================================"
+echo "🛡️  STARTING PRODUCTION SERVER HARDENING"
+echo "Engineer: Abdul Rehman Rashid"
+echo "======================================================"
+
+# 1. Update the System
+echo "[+] Updating system repositories and packages..."
+apt-get update -y && apt-get upgrade -y
+
+# 2. Configure Firewall (UFW)
+echo "[+] Configuring Uncomplicated Firewall (UFW)..."
+apt-get install ufw -y
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp  # Allow SSH
+ufw allow 80/tcp  # Allow HTTP
+ufw allow 443/tcp # Allow HTTPS
+echo "y" | ufw enable
+
+# 3. Secure SSH Configuration
+echo "[+] Hardening SSH Configuration..."
+sed -i 's/#PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
+sed -i 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
+sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+# Restart SSH to apply changes safely
+systemctl restart sshd
+
+# 4. Install & Configure Fail2Ban (Brute-Force Protection)
+echo "[+] Installing Fail2Ban to block automated attacks..."
+apt-get install fail2ban -y
+systemctl start fail2ban
+systemctl enable fail2ban
+
+echo "======================================================"
+echo "✅ SERVER HARDENING COMPLETED SUCCESSFULLY!"
+echo "⚠️  Note: Root SSH login is disabled. Use a standard user."
+echo "======================================================"
